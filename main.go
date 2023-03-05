@@ -3,13 +3,23 @@ package main
 import (
 	"fmt"
 	"io"
+	"log"
 	"net"
 	"os"
+
+	"github.com/panjf2000/gnet/v2"
+	"reacpf.org/udspong/pongserver"
 )
 
 var udspath = "/tmp/uds.sock"
 
 func main() {
+
+	s := new(pongserver.PongServer)
+	log.Fatal(gnet.Run(s, "unix:///tmp/uds.sock", gnet.WithMulticore(true)))
+}
+
+func gonative() {
 	os.Remove(udspath)
 	l, err := net.Listen("unix", udspath)
 	if err != nil {
