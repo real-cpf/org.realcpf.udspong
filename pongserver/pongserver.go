@@ -20,6 +20,7 @@ type PongServer struct {
 	disconnected int32
 	// channelMap   map[string]gnet.Conn
 	channelMap sync.Map
+	db         sync.Map
 }
 
 const (
@@ -34,6 +35,7 @@ func (s *PongServer) OnBoot(e gnet.Engine) (action gnet.Action) {
 	s.eng = e
 	// s.channelMap = make(map[string]gnet.Conn)
 	s.channelMap = sync.Map{}
+	s.db = sync.Map{}
 	log.Printf("server start on %s", s.addr)
 	return
 }
@@ -53,6 +55,9 @@ func (s *PongServer) OnClose(c gnet.Conn, err error) (action gnet.Action) {
 	return
 }
 
+var state [2][]byte
+var inx = 0
+
 func (s *PongServer) OnTraffic(c gnet.Conn) gnet.Action {
 
 	codec := c.Context().(*codec.PongCodec)
@@ -60,11 +65,18 @@ func (s *PongServer) OnTraffic(c gnet.Conn) gnet.Action {
 		data, num := codec.Decode(c)
 		switch num {
 		case GET_NUM:
-			fmt.Printf("set to store %s and return value\n", string(data))
+			v, _ := s.db.Load(string(data))
+			fmt.Printf("set to store %s and return %s \n", string(data), v)
 		case COMMAND_NUM:
 			fmt.Printf("do command %s \n", string(data))
 		case BYTE_VALUE_NUM:
 			//
+			state[inx] = data
+			inx = inx + 1
+			if inx == 2 {
+				inx = 0
+				s.db.Store(string(state[0]), string(state[1]))
+			}
 			fmt.Println(string(data))
 		case ROUTE_VALUE_NUM:
 			key, value := ParseRouteValues(data)
